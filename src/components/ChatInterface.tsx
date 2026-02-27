@@ -13,6 +13,45 @@ export const ChatInterface = ({ onEnd }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState([
     { text: "Olá! Como posso te ajudar?", isAi: true },
   ]);
+  const [loading, setLoading] = useState(false);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!input.trim()) return;
+
+    const userMessage = { text: input, isAi: false };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:3000/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: input }),
+      });
+
+      const data = await response.json();
+
+      const aiMessage = { text: data.response, isAi: true };
+
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch (error) {
+      console.error("Erro ao enviar mensagem:", error);
+
+      setMessages((prev) => [
+        ...prev,
+        { text: "Erro ao conectar com o servidor.", isAi: true },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -23,16 +62,17 @@ export const ChatInterface = ({ onEnd }: ChatInterfaceProps) => {
         <h2 className="ml-4 text-xl font-semibold">Conversa de Apoio</h2>
       </div>
 
-      {/* Area da Mensagem */}
+      {/* Área das Mensagens */}
       <div className="flex-1 overflow-auto p-4 space-y-4">
         {messages.map((msg, idx) => (
           <ChatMessage key={idx} message={msg.text} isAi={msg.isAi} />
         ))}
+        {loading && <ChatMessage message="Digitando..." isAi={true} />}
       </div>
 
-      {/* Area do Input */}
+      {/* Área do Input */}
       <div className="p-4 border-t bg-white/50">
-        <form className="flex gap-2">
+        <form onSubmit={handleSendMessage} className="flex gap-2">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
